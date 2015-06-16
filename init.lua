@@ -221,7 +221,10 @@ minetest.register_node("enchant:enchantbox", {
 						vertical = false,
 						texture = "bubble.png",
 					})
-					item:setvelocity({x=math.random(-3,3)*math.random(),y=math.random(3,7),z=math.random(-3,3)*math.random()})
+					--item:setvelocity({x=math.random(-3,3)*math.random(),y=math.random(3,7),z=math.random(-3,3)*math.random()})
+					local newpos = item:getpos()
+					local newpos2= clicker:getpos()
+					item:setvelocity({x=newpos2.x-newpos.x,y=(newpos2.y-newpos.y)+6,z=newpos2.z-newpos.z})
 					item:setacceleration({x = 0, y = -10, z = 0})
 				end)
 
