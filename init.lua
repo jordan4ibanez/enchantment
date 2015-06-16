@@ -97,7 +97,7 @@ for x = 1,tablelength(enchant.pick) do
 		minetest.register_tool(":"..tool.."_"..a.."_"..b.."_"..c.."_"..d, {
 			description = name,
 			inventory_image = minetest.registered_items[enchant.pick[x]]["inventory_image"],
-			groups = {not_in_creative_inventory=1}, --don't clutter the inventory
+			groups = {not_in_creative_inventory=1,enchanted_pick=1,luck=c,cherry_pick=d}, --don't clutter the inventory
 			tool_capabilities = {
 				--full_punch_interval = 1.3,
 				--max_drop_level=0,
@@ -259,16 +259,45 @@ minetest.register_node("enchant:enchantbox", {
 
 
 --do some enchantments
---[[
+
+--the on_dig enchantments --
 minetest.register_on_dignode(function(pos, oldnode, digger)
+	local inv = digger:get_inventory()
 	local itemstack = digger:get_wielded_item()
 	local name = itemstack:get_name()
-	local meta = itemstack:get_metadata()
-	itemstack:take_item()
-	digger:set_wielded_item(itemstack)
+	if minetest.get_item_group(name, "enchanted_pick") == 1 then
+		--this player just dug with an enchanted pickaxe
+		if minetest.get_item_group(name, "luck") == 1 and minetest.get_item_group(name, "cherry_pick") == 0 then
+			if math.random() > 0.5 then
+				local drop = minetest.registered_nodes[oldnode.name]["drop"]
+				if inv:room_for_item("main", drop) == true then
+					inv:add_item("main", drop)
+				end
+			end
+		elseif minetest.get_item_group(name, "cherry_pick") == 1 then
+			--take out the old drop and replace it with the node itself
+			inv:remove_item("main", minetest.registered_nodes[oldnode.name]["drop"])
+			inv:add_item("main", oldnode.name)
+			--add luck to this
+			if minetest.get_item_group(name, "luck") == 1 then
+				if math.random() > 0.5 then
+					local drop = oldnode.name
+					if inv:room_for_item("main", drop) == true then
+						inv:add_item("main", drop)
+					end
+				end			
+			end
+		end
+			
+
+	end
+	--local meta = itemstack:get_metadata()
+	
+	--itemstack:take_item()
+	--digger:set_wielded_item(itemstack)
 	--itemstack:set_stack(itemstack)
 end)
-]]--
+
 
 
 
