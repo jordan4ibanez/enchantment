@@ -20,6 +20,11 @@ end
 --do multiple levels for these
 
 --make the thing slowly raise the tool with a sound, make a noise with particles and throw the tool at the player
+
+--possibly a max level enchant? maybe?
+
+--damage group enchant?
+
 enchant = {}
 
 enchant.enchantments_pick = {
@@ -46,50 +51,63 @@ for x = 1,tablelength(enchant.pick) do
 	for b = 0,1 do --durable
 	for c = 0,1 do --luck
 	for d = 0,1 do --cherry pick
-	if a == 0 and b == 0 and c == 0 and d == 0 then -- no enchantments, then don't duplicate the tool
-		break
-	end
-	--name the tool, and define it
-	local tool = enchant.pick[x]
-	local name = minetest.registered_items[enchant.pick[x]]["description"]
-	if a == 1 then
-		name = name.."\n-Speed"
-	end
-	if b == 1 then
-		name = name.."\n-Durable"
-	end
-	if c == 1 then
-		name = name.."\n-Luck"
-	end
-	if d == 1 then
-		name = name.."\n-Cherry Pick"
-	end
-	--add the enchant to the tools - don't add to the logic above to improve readability
-	--global because of bugs with registered tools or something
---	capabilities = minetest.registered_tools[enchant.pick[x]]["tool_capabilities"] --this is here twice because of the logic of this stupid thing
+	if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't duplicate the tool
 
-	local table = {minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["times"][1],minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["times"][2],minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["times"][3]}
-	if table[1] then
-		table[1] = table[1] / 2
-	end
-	if table[2] then
-		table[2] = table[2] / 2
-	end
-	if table[3] then
-		table[3] = table[3] / 2
-	end
-	minetest.register_tool(":"..tool.."_"..a.."_"..b.."_"..c.."_"..d, {
-		description = name,
-		inventory_image = minetest.registered_items[enchant.pick[x]]["inventory_image"],
-		tool_capabilities = {
-			--full_punch_interval = 1.3,
-			--max_drop_level=0,
-			groupcaps={
-				cracky = {times=table, uses=20, maxlevel=1},
+		--name the tool, and define it
+		local tool = enchant.pick[x]
+		local name = minetest.registered_items[enchant.pick[x]]["description"]
+		if a == 1 then
+			name = name.."\n-Speed"
+		end
+		if b == 1 then
+			name = name.."\n-Durable"
+		end
+		if c == 1 then
+			name = name.."\n-Luck"
+		end
+		if d == 1 then
+			name = name.."\n-Cherry Pick"
+		end
+		print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+		--add the enchant to the tools - don't add to the logic above to improve readability
+		--global because of bugs with registered tools or something
+
+		local table = {}
+		local uses = 0
+		local maxlevel = 0
+		--if enchanted with speed, half time, if not, use standard tool time.
+		if a == 1 then
+			for i = 1,3 do
+				if  minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["times"][i] then
+					table[i] = minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["times"][i]/2
+				end
+			end
+		else
+			table = minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["times"]
+		end
+		--if enchanted with durable, double the uses, if not, use standard uses.
+		if b == 1 then
+			uses = minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["uses"] * 2
+		else
+			uses = minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["uses"]
+		end
+		--possibly turn this into enchant
+		maxlevel = minetest.registered_tools[enchant.pick[x]]["tool_capabilities"]["groupcaps"]["cracky"]["maxlevel"]
+
+		minetest.register_tool(":"..tool.."_"..a.."_"..b.."_"..c.."_"..d, {
+			description = name,
+			inventory_image = minetest.registered_items[enchant.pick[x]]["inventory_image"],
+			groups = {not_in_creative_inventory=1}, --don't clutter the inventory
+			tool_capabilities = {
+				--full_punch_interval = 1.3,
+				--max_drop_level=0,
+				groupcaps={
+					cracky = {times=table, uses=uses, maxlevel=maxlevel},
+				},
+				damage_groups = {fleshy=3},
 			},
-			damage_groups = {fleshy=3},
-		},
 		})
+	end
 	end
 	end
 	end
@@ -143,17 +161,76 @@ minetest.register_node("enchant:enchantbox", {
 			if intable(enc_tab, enchant.enchantments_pick[4]) then --cherry pick
 				d = 1 
 			end
-			if a == 0 and b == 0 and c == 0 and d == 0 then -- no enchantments, then don't put out a normal tool
-				return
-			end
-			itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
-			local pos = pointed_thing.under
-			pos.y = pos.y + 1
-			local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
-			local item = item:get_luaentity().object
-			item:setvelocity({x=math.random(-3,3)*math.random(),y=math.random(5,7)*math.random(),z=math.random(-3,3)*math.random()})
+			if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't put out a normal tool
 
-			return(itemstack)
+				itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+				local pos = pointed_thing.under
+				pos.y = pos.y + 0.7
+				local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+				if item == nil then
+					print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+					print("BUG!")
+					return
+				end 
+				local item = item:get_luaentity().object
+				item:setvelocity({x = 0, y = 0.1, z = 0})
+				item:setacceleration({x = 0, y = 0, z = 0})
+				local sound = minetest.sound_play("build", {
+					pos = pos,
+					max_hear_distance = 20,
+					gain = 1,
+				})
+				minetest.add_particlespawner({
+					amount = 100,
+					time = 13,
+					minpos = {x=pos.x-0.5, y=pos.y-0.1, z=pos.z-0.5},
+					maxpos = {x=pos.x+0.5, y=pos.y-0.1, z=pos.z+0.5},
+					minvel = {x=0, y=0, z=0},
+					maxvel = {x=0, y=0, z=0},
+					minacc = {x=0, y=0.1, z=0},
+					maxacc = {x=0, y=1, z=0},
+					minexptime = 1,
+					maxexptime = 2,
+					minsize = 1,
+					maxsize = 1,
+					collisiondetection = false,
+					vertical = false,
+					texture = "bubble.png",
+				})
+				minetest.after(13, function()
+					minetest.sound_stop(sound)
+					minetest.sound_play("enchant", {
+						pos = pos,
+						max_hear_distance = 20,
+						gain = 1,
+					})
+					minetest.add_particlespawner({
+						amount = 100,
+						time = 0.1,
+						minpos = item:getpos(),
+						maxpos = item:getpos(),
+						minvel = {x=-1, y=-1, z=-1},
+						maxvel = {x=1, y=1, z=1},
+						minacc = {x=0, y=0, z=0},
+						maxacc = {x=0, y=0, z=0},
+						minexptime = 1,
+						maxexptime = 2,
+						minsize = 1,
+						maxsize = 1,
+						collisiondetection = false,
+						vertical = false,
+						texture = "bubble.png",
+					})
+					item:setvelocity({x=math.random(-3,3)*math.random(),y=math.random(3,7),z=math.random(-3,3)*math.random()})
+					item:setacceleration({x = 0, y = -10, z = 0})
+				end)
+
+
+
+				return(itemstack)
+			else
+				print("very unlucky motherfucker")
+			end
 		end
 		-- then do the enchantments for other tools
 
