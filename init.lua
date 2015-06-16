@@ -277,7 +277,9 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
 		elseif minetest.get_item_group(name, "cherry_pick") == 1 then
 			--take out the old drop and replace it with the node itself
 			inv:remove_item("main", minetest.registered_nodes[oldnode.name]["drop"])
-			inv:add_item("main", oldnode.name)
+			if inv:room_for_item("main", oldnode.name) == true then --just in case
+				inv:add_item("main", oldnode.name)
+			end
 			--add luck to this
 			if minetest.get_item_group(name, "luck") == 1 then
 				if math.random() > 0.5 then
