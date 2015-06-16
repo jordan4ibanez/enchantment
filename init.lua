@@ -162,11 +162,12 @@ minetest.register_node("enchant:enchantbox", {
 				d = 1 
 			end
 			if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't put out a normal tool
-
+				local name = itemstack:get_name()
 				itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
 				local pos = pointed_thing.under
 				pos.y = pos.y + 0.7
-				local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+				--local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+				local item = minetest.add_item(pos,name)
 				if item == nil then
 					print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
 					print("BUG!")
@@ -175,6 +176,7 @@ minetest.register_node("enchant:enchantbox", {
 				local item = item:get_luaentity().object
 				item:setvelocity({x = 0, y = 0.1, z = 0})
 				item:setacceleration({x = 0, y = 0, z = 0})
+				item:set_properties({automatic_rotate = 0}) --or do 10
 				local sound = minetest.sound_play("build", {
 					pos = pos,
 					max_hear_distance = 20,
@@ -198,6 +200,10 @@ minetest.register_node("enchant:enchantbox", {
 					texture = "bubble.png",
 				})
 				minetest.after(13, function()
+					--don't do anything if the player cancelled the event
+					if item:get_luaentity() == nil then
+						return
+					end
 					minetest.sound_stop(sound)
 					minetest.sound_play("enchant", {
 						pos = pos,
@@ -221,9 +227,11 @@ minetest.register_node("enchant:enchantbox", {
 						vertical = false,
 						texture = "bubble.png",
 					})
-					--item:setvelocity({x=math.random(-3,3)*math.random(),y=math.random(3,7),z=math.random(-3,3)*math.random()})
+					--make it so you cannot get the enchantment before it's done with the cinematic
 					local newpos = item:getpos()
 					local newpos2= clicker:getpos()
+					item:remove()
+					local item = minetest.add_item(newpos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
 					item:setvelocity({x=newpos2.x-newpos.x,y=(newpos2.y-newpos.y)+6,z=newpos2.z-newpos.z})
 					item:setacceleration({x = 0, y = -10, z = 0})
 				end)
