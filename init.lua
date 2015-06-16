@@ -143,10 +143,16 @@ minetest.register_node("enchant:enchantbox", {
 			if intable(enc_tab, enchant.enchantments_pick[4]) then --cherry pick
 				d = 1 
 			end
-			if a == 0 and b == 0 and c == 0 and d == 0 then -- no enchantments, then don't duplicate the tool
+			if a == 0 and b == 0 and c == 0 and d == 0 then -- no enchantments, then don't put out a normal tool
 				return
 			end
-			itemstack:set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+			itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+			local pos = pointed_thing.under
+			pos.y = pos.y + 1
+			local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+			local item = item:get_luaentity().object
+			item:setvelocity({x=math.random(-3,3)*math.random(),y=math.random(5,7)*math.random(),z=math.random(-3,3)*math.random()})
+
 			return(itemstack)
 		end
 		-- then do the enchantments for other tools
