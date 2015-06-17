@@ -364,8 +364,6 @@ function decimate_player_with_crucible(pos)
 end
 
 
---The logic of this thing is totally messed up, so you can right click it with your hand, or any item in general
---Possibly keeping it like this?
 minetest.register_node("enchant:crucible", {
 	description = "Crucible",
 
@@ -397,9 +395,6 @@ minetest.register_node("enchant:crucible", {
 		--only enchantable items
 		if intable(enchant.pick, name) ~= false or intable(enchant.shovel, name) ~= false or intable(enchant.axe, name) ~= false then
 			local chance = math.random()
-
-			chance = 0.999
-
 			if chance <= 0.85 then
 				local meta = itemstack:get_metadata()
 				--only enchant unenchanted tools
