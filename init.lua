@@ -212,7 +212,7 @@ enchant.enchantments_axe = {
 "speed", --speed (check a .after thing to tell how fast you'll dig it.) 
 "durable", --resistance or infinity - 1 is resistance 2 is infinity
 "luck", --get multiple items
-"cherry pick", --similar to silk touch in MC
+"tree feller", --My favorite MC mod - replaces cherry pick
 }
 enchant.axe = {
 "default:axe_bronze",
@@ -226,12 +226,12 @@ enchant.axe = {
 --since tools can't be modified on the fly, I have to do this. 384 tools from 6. GREAT.
 --pickaxe enchantments
 for x = 1,tablelength(enchant.axe) do
-	print(enchant.axe[x])
+	--print(enchant.axe[x])
 	--try to do this some other, maybe
 	for a = 0,1 do --speed
 	for b = 0,1 do --durable
 	for c = 0,1 do --luck
-	for d = 0,1 do --cherry pick
+	for d = 0,1 do --tree feller
 	if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't duplicate the tool
 
 		--name the tool, and define it
@@ -247,7 +247,7 @@ for x = 1,tablelength(enchant.axe) do
 			name = name.."\n-Luck"
 		end
 		if d == 1 then
-			name = name.."\n-Cherry Pick"
+			name = name.."\n-Tree Feller"
 		end
 		--print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
 		--add the enchant to the tools - don't add to the logic above to improve readability
@@ -278,7 +278,7 @@ for x = 1,tablelength(enchant.axe) do
 		minetest.register_tool(":"..tool.."_"..a.."_"..b.."_"..c.."_"..d, {
 			description = name,
 			inventory_image = minetest.registered_items[enchant.axe[x]]["inventory_image"],
-			groups = {not_in_creative_inventory=1,enchanted_axe=1,luck=c,cherry_pick=d}, --don't clutter the inventory
+			groups = {not_in_creative_inventory=1,enchanted_axe=1,luck=c,tree_feller=d}, --don't clutter the inventory
 			tool_capabilities = {
 				--full_punch_interval = 1.3,
 				--max_drop_level=0,
@@ -673,29 +673,59 @@ function enchanted_add(pos,drops,digger)
 		minetest.add_item(pos, source_node)
 	end
 end
-
-
+function treecapitate(pos,drops,digger)
+	if minetest.get_item_group(minetest.get_node(pos).name, "choppy") ~= 0 then 
+		for i = 1,20 do
+			if minetest.get_item_group(minetest.get_node(pos).name, "choppy") ~= 0 then
+				unenchanted_add(pos,drops,digger)
+				minetest.remove_node(pos)
+				pos.y = pos.y + 1
+			end
+		end
+	end		
+end
+function super_treecapitate(pos,drops,digger)
+	if minetest.get_item_group(minetest.get_node(pos).name, "choppy") ~= 0 then 
+		for i = 1,20 do
+			if minetest.get_item_group(minetest.get_node(pos).name, "choppy") ~= 0 then
+				unenchanted_add(pos,drops,digger)
+				if math.random() > 0.5 then
+					unenchanted_add(pos,drops,digger)
+				end
+				minetest.remove_node(pos)
+				pos.y = pos.y + 1
+			end
+		end
+	end		
+end
 function minetest.handle_node_drops(pos, drops, digger)
 	local itemstack = digger:get_wielded_item()
 	local name = itemstack:get_name()
 	--mix the shovel and pickaxe enchants into one
 	if minetest.get_item_group(name, "enchanted_pick") == 1 or minetest.get_item_group(name, "enchanted_shovel") == 1 or minetest.get_item_group(name, "enchanted_axe") == 1 then
-
-		--this player just dug with an enchanted pickaxe
-		if minetest.get_item_group(name, "cherry_pick") == 0 then
-			unenchanted_add(pos,drops,digger)
-			if minetest.get_item_group(name, "luck") == 1 then
-				if math.random() > 0.5 then
-					unenchanted_add(pos,drops,digger)
+		--this player just dug with an enchanted pickaxe or shovel - check if axe with treefeller first
+		if minetest.get_item_group(name, "tree_feller") == 0 then
+			if minetest.get_item_group(name, "cherry_pick") == 0 then
+				unenchanted_add(pos,drops,digger)
+				if minetest.get_item_group(name, "luck") == 1 then
+					if math.random() > 0.5 then
+						unenchanted_add(pos,drops,digger)
+					end
+				end
+			elseif minetest.get_item_group(name, "cherry_pick") == 1 then
+				enchanted_add(pos,drops,digger)
+				--add luck to this
+				if minetest.get_item_group(name, "luck") == 1 then
+					if math.random() > 0.5 then
+						enchanted_add(pos,drops,digger)
+					end			
 				end
 			end
-		elseif minetest.get_item_group(name, "cherry_pick") == 1 then
-			enchanted_add(pos,drops,digger)
-			--add luck to this
+		else
 			if minetest.get_item_group(name, "luck") == 1 then
-				if math.random() > 0.5 then
-					enchanted_add(pos,drops,digger)
-				end			
+				super_treecapitate(pos,drops,digger)
+			else
+				treecapitate(pos,drops,digger)
 			end
 		end
 	else
