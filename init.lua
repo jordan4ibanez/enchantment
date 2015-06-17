@@ -13,21 +13,30 @@ function intable(tbl, item)
 end
 	
 
---current goal, give a pickaxe a random table of enchantments - 
+--DONE   current goal, give a pickaxe a random table of enchantments - 
 
---for the cherry pick enchantment, do an on_dignode function for all players, then check for the enchantment, drop the item that was mined using player:dig_node
+--DONE for the cherry pick enchantment, do an on_dignode function for all players, then check for the enchantment, drop the item that was mined using player:dig_node
 
 --do multiple levels for these
 
---make the thing slowly raise the tool with a sound, make a noise with particles and throw the tool at the player
+--DONE make the thing slowly raise the tool with a sound, make a noise with particles and throw the tool at the player
 
 --possibly a max level enchant? maybe?
 
 --damage group enchant?
 
---make the enchantment box use the moving water texture, with an overlay, to make it look like it's magic
+--DONE make the enchantment box use the moving water texture, with an overlay, to make it look like it's magic
 
 --make the enchantment box randomly eat items instead of enchanting them
+
+--make the enchantment box explode, and kill player's in area on rare occasions
+
+--make the enchant box clear the player's inventory on RARE occasions
+
+--modify treecapitator to use voxel manip
+
+--make bad effects also happen
+
 
 enchant = {}
 
@@ -298,103 +307,137 @@ end
 
 
 
+local enchant_top = {
+	name = "default_water_source_animated.png^[colorize:red:120^enchant_table_top.png",
+	animation = {
+		type = "vertical_frames",
+		aspect_w = 16,
+		aspect_h = 16,
+		length = 2.0,
+	},
+}
+function decimate_player_with_crucible(pos)
+	local radius = 3
+	local min = {x=pos.x-radius,y=pos.y-radius,z=pos.z-radius}
+	local max = {x=pos.x+radius,y=pos.y+radius,z=pos.z+radius}
+	local vm = minetest.get_voxel_manip()	
+	local emin, emax = vm:read_from_map(min,max)
+	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
+	local data = vm:get_data()
+
+	for x = -radius,radius do
+	for y = -radius,radius do
+	for z = -radius,radius do
+	if x*x+y*y+z*z <= radius * radius + radius then --from sfan5's nuke mod (1.6)
+		local p_pos = area:index(pos.x+x,pos.y+y,pos.z+z)
+		data[p_pos] = minetest.get_content_id("air")
+	end
+	end
+	end
+	end
+
+	vm:set_data(data)
+	vm:calc_lighting()
+	vm:write_to_map()
+	vm:update_map()
+	minetest.forceload_block(pos)
+end
 
 
+--The logic of this thing is totally messed up, so you can right click it with your hand, or any item in general
+--Possibly keeping it like this?
+minetest.register_node("enchant:crucible", {
+	description = "Crucible",
 
-minetest.register_node("enchant:enchantbox", {
-	description = "Cactus",
-	tiles = {"default_cactus_top.png", "default_stone.png"},
+	--Thanks to Gambit and kilbith for this
+	tiles = {enchant_top,"enchant_table_bottom.png","enchant_table_side.png","enchant_table_side.png","enchant_table_side.png","enchant_table_side.png",},
 	paramtype2 = "facedir",
 	is_ground_content = true,
 	groups = {snappy=1,choppy=3,flammable=2},
+	paramtype = "light",
+	drawtype = "nodebox",
+	selection_box = {type="regular"},
+	node_box = {
+			type = "fixed",
+			fixed = {
+			--jukebox core - divide by 16 because 16 pixels
+			{-8/16, -8/16, -8/16, 8/16, 7/16, 8/16},
+			--top
+			{-8/16, 6/16, -8/16, 8/16, 7/16, 8/16},
+			--top trim
+			{6/16, 7/16, -8/16, 8/16, 8/16, 8/16},
+			{-8/16, 7/16, 6/16, 8/16, 8/16, 8/16},
+			{-8/16, 7/16, -8/16, -6/16, 8/16, 8/16},
+			{-8/16, 7/16, -8/16, 8/16, 8/16, -6/16},
+			},
+		},
 	on_place = minetest.rotate_node,
 	on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
-		local name = itemstack:get_name()
-		local meta = itemstack:get_metadata()
-		--only enchant unenchanted tools
-		if intable(enchant.pick, name) ~= false and meta == "" then 
-			--set up a random amount of perks, with random perks, in a random order, random.
-			local enc_tab = {}
-			local counter = 1
-			for i = 1,math.random(1,tablelength(enchant.enchantments_pick)) do
-				local perk = enchant.enchantments_pick[math.random(1,tablelength(enchant.enchantments_pick))]
-				if intable(enc_tab, perk) == false then
-					enc_tab[counter] = perk
-					counter = counter + 1
-				end
-			end
-			local tool = itemstack:get_name()
-			local a, b, c, d = 0,0,0,0
-			if intable(enc_tab, enchant.enchantments_pick[1]) then --speed
-				a = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_pick[2]) then --durable
-				b = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_pick[3]) then --luck
-				c = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_pick[4]) then --cherry pick
-				d = 1 
-			end
-			if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't put out a normal tool
-				local name = itemstack:get_name()
-				itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
-				local pos = pointed_thing.under
-				pos.y = pos.y + 0.7
-				--local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
-				local item = minetest.add_item(pos,name)
-				if item == nil then
-					print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
-					print("BUG!")
-					return
-				end 
-				local item = item:get_luaentity().object
-				item:setvelocity({x = 0, y = 0.1, z = 0})
-				item:setacceleration({x = 0, y = 0, z = 0})
-				item:set_properties({automatic_rotate = 0}) --or do 10
-				local sound = minetest.sound_play("build", {
-					pos = pos,
-					max_hear_distance = 20,
-					gain = 1,
-				})
-				minetest.add_particlespawner({
-					amount = 100,
-					time = 13,
-					minpos = {x=pos.x-0.5, y=pos.y-0.1, z=pos.z-0.5},
-					maxpos = {x=pos.x+0.5, y=pos.y-0.1, z=pos.z+0.5},
-					minvel = {x=0, y=0, z=0},
-					maxvel = {x=0, y=0, z=0},
-					minacc = {x=0, y=0.1, z=0},
-					maxacc = {x=0, y=1, z=0},
-					minexptime = 1,
-					maxexptime = 2,
-					minsize = 1,
-					maxsize = 1,
-					collisiondetection = false,
-					vertical = false,
-					texture = "bubble.png",
-				})
-				minetest.after(13, function()
-					--don't do anything if the player cancelled the event
-					if item:get_luaentity() == nil then
-						return
+		local chance = math.random()
+
+
+		--chance = 0.999 --------------------------------------------------------------------------------------------------------- uh oh
+
+
+		if chance <= 0.85 then
+			local name = itemstack:get_name()
+			local meta = itemstack:get_metadata()
+			--only enchant unenchanted tools
+			if intable(enchant.pick, name) ~= false and meta == "" then 
+				--set up a random amount of perks, with random perks, in a random order, random.
+				local enc_tab = {}
+				local counter = 1
+				for i = 1,math.random(1,tablelength(enchant.enchantments_pick)) do
+					local perk = enchant.enchantments_pick[math.random(1,tablelength(enchant.enchantments_pick))]
+					if intable(enc_tab, perk) == false then
+						enc_tab[counter] = perk
+						counter = counter + 1
 					end
-					minetest.sound_stop(sound)
-					minetest.sound_play("enchant", {
+				end
+				local tool = itemstack:get_name()
+				local a, b, c, d = 0,0,0,0
+				if intable(enc_tab, enchant.enchantments_pick[1]) then --speed
+					a = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_pick[2]) then --durable
+					b = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_pick[3]) then --luck
+					c = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_pick[4]) then --cherry pick
+					d = 1 
+				end
+				if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't put out a normal tool
+					local name = itemstack:get_name()
+					itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+					local pos = pointed_thing.under
+					pos.y = pos.y + 0.7
+					--local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+					local item = minetest.add_item(pos,name)
+					if item == nil then
+						print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+						print("BUG!")
+						return
+					end 
+					local item = item:get_luaentity().object
+					item:setvelocity({x = 0, y = 0.1, z = 0})
+					item:setacceleration({x = 0, y = 0, z = 0})
+					item:set_properties({automatic_rotate = 0}) --or do 10
+					local sound = minetest.sound_play("build", {
 						pos = pos,
 						max_hear_distance = 20,
 						gain = 1,
 					})
 					minetest.add_particlespawner({
 						amount = 100,
-						time = 0.1,
-						minpos = item:getpos(),
-						maxpos = item:getpos(),
-						minvel = {x=-1, y=-1, z=-1},
-						maxvel = {x=1, y=1, z=1},
-						minacc = {x=0, y=0, z=0},
-						maxacc = {x=0, y=0, z=0},
+						time = 13,
+						minpos = {x=pos.x-(6/16), y=pos.y-0.1, z=pos.z-(6/16)},
+						maxpos = {x=pos.x+(6/16), y=pos.y-0.1, z=pos.z+(6/16)},
+						minvel = {x=0, y=0, z=0},
+						maxvel = {x=0, y=0, z=0},
+						minacc = {x=0, y=0.1, z=0},
+						maxacc = {x=0, y=1, z=0},
 						minexptime = 1,
 						maxexptime = 2,
 						minsize = 1,
@@ -403,105 +446,105 @@ minetest.register_node("enchant:enchantbox", {
 						vertical = false,
 						texture = "bubble.png",
 					})
-					--make it so you cannot get the enchantment before it's done with the cinematic
-					local newpos = item:getpos()
-					local newpos2= clicker:getpos()
-					item:remove()
-					local item = minetest.add_item(newpos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
-					item:setvelocity({x=newpos2.x-newpos.x,y=(newpos2.y-newpos.y)+6,z=newpos2.z-newpos.z})
-					item:setacceleration({x = 0, y = -10, z = 0})
-				end)
+					minetest.after(13, function()
+						--don't do anything if the player cancelled the event
+						if item:get_luaentity() == nil then
+							return
+						end
+						minetest.sound_stop(sound)
+						minetest.sound_play("enchant", {
+							pos = pos,
+							max_hear_distance = 20,
+							gain = 1,
+						})
+						minetest.add_particlespawner({
+							amount = 100,
+							time = 0.1,
+							minpos = item:getpos(),
+							maxpos = item:getpos(),
+							minvel = {x=-1, y=-1, z=-1},
+							maxvel = {x=1, y=1, z=1},
+							minacc = {x=0, y=0, z=0},
+							maxacc = {x=0, y=0, z=0},
+							minexptime = 1,
+							maxexptime = 2,
+							minsize = 1,
+							maxsize = 1,
+							collisiondetection = false,
+							vertical = false,
+							texture = "bubble.png",
+						})
+						--make it so you cannot get the enchantment before it's done with the cinematic
+						local newpos = item:getpos()
+						local newpos2= clicker:getpos()
+						item:remove()
+						local item = minetest.add_item(newpos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+						item:setvelocity({x=newpos2.x-newpos.x,y=(newpos2.y-newpos.y)+6,z=newpos2.z-newpos.z})
+						item:setacceleration({x = 0, y = -10, z = 0})
+					end)
 
 
 
-				return(itemstack)
-			else
-				--do nothing
-			end
-		end
-		if intable(enchant.shovel, name) ~= false and meta == "" then 
-			--set up a random amount of perks, with random perks, in a random order, random.
-			local enc_tab = {}
-			local counter = 1
-			for i = 1,math.random(1,tablelength(enchant.enchantments_shovel)) do
-				local perk = enchant.enchantments_shovel[math.random(1,tablelength(enchant.enchantments_shovel))]
-				if intable(enc_tab, perk) == false then
-					enc_tab[counter] = perk
-					counter = counter + 1
+					return(itemstack)
+				else
+					--do nothing
 				end
 			end
-			local tool = itemstack:get_name()
-			local a, b, c, d = 0,0,0,0
-			if intable(enc_tab, enchant.enchantments_shovel[1]) then --speed
-				a = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_shovel[2]) then --durable
-				b = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_shovel[3]) then --luck
-				c = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_shovel[4]) then --cherry pick
-				d = 1 
-			end
-			if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't put out a normal tool
-				local name = itemstack:get_name()
-				itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
-				local pos = pointed_thing.under
-				pos.y = pos.y + 0.7
-				--local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
-				local item = minetest.add_item(pos,name)
-				if item == nil then
-					print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
-					print("BUG!")
-					return
-				end 
-				local item = item:get_luaentity().object
-				item:setvelocity({x = 0, y = 0.1, z = 0})
-				item:setacceleration({x = 0, y = 0, z = 0})
-				item:set_properties({automatic_rotate = 0}) --or do 10
-				local sound = minetest.sound_play("build", {
-					pos = pos,
-					max_hear_distance = 20,
-					gain = 1,
-				})
-				minetest.add_particlespawner({
-					amount = 100,
-					time = 13,
-					minpos = {x=pos.x-0.5, y=pos.y-0.1, z=pos.z-0.5},
-					maxpos = {x=pos.x+0.5, y=pos.y-0.1, z=pos.z+0.5},
-					minvel = {x=0, y=0, z=0},
-					maxvel = {x=0, y=0, z=0},
-					minacc = {x=0, y=0.1, z=0},
-					maxacc = {x=0, y=1, z=0},
-					minexptime = 1,
-					maxexptime = 2,
-					minsize = 1,
-					maxsize = 1,
-					collisiondetection = false,
-					vertical = false,
-					texture = "bubble.png",
-				})
-				minetest.after(13, function()
-					--don't do anything if the player cancelled the event
-					if item:get_luaentity() == nil then
-						return
+			if intable(enchant.shovel, name) ~= false and meta == "" then 
+				--set up a random amount of perks, with random perks, in a random order, random.
+				local enc_tab = {}
+				local counter = 1
+				for i = 1,math.random(1,tablelength(enchant.enchantments_shovel)) do
+					local perk = enchant.enchantments_shovel[math.random(1,tablelength(enchant.enchantments_shovel))]
+					if intable(enc_tab, perk) == false then
+						enc_tab[counter] = perk
+						counter = counter + 1
 					end
-					minetest.sound_stop(sound)
-					minetest.sound_play("enchant", {
+				end
+				local tool = itemstack:get_name()
+				local a, b, c, d = 0,0,0,0
+				if intable(enc_tab, enchant.enchantments_shovel[1]) then --speed
+					a = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_shovel[2]) then --durable
+					b = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_shovel[3]) then --luck
+					c = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_shovel[4]) then --cherry pick
+					d = 1 
+				end
+				if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't put out a normal tool
+					local name = itemstack:get_name()
+					itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+					local pos = pointed_thing.under
+					pos.y = pos.y + 0.7
+					--local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+					local item = minetest.add_item(pos,name)
+					if item == nil then
+						print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+						print("BUG!")
+						return
+					end 
+					local item = item:get_luaentity().object
+					item:setvelocity({x = 0, y = 0.1, z = 0})
+					item:setacceleration({x = 0, y = 0, z = 0})
+					item:set_properties({automatic_rotate = 0}) --or do 10
+					local sound = minetest.sound_play("build", {
 						pos = pos,
 						max_hear_distance = 20,
 						gain = 1,
 					})
 					minetest.add_particlespawner({
 						amount = 100,
-						time = 0.1,
-						minpos = item:getpos(),
-						maxpos = item:getpos(),
-						minvel = {x=-1, y=-1, z=-1},
-						maxvel = {x=1, y=1, z=1},
-						minacc = {x=0, y=0, z=0},
-						maxacc = {x=0, y=0, z=0},
+						time = 13,
+						minpos = {x=pos.x-(6/16), y=pos.y-0.1, z=pos.z-(6/16)},
+						maxpos = {x=pos.x+(6/16), y=pos.y-0.1, z=pos.z+(6/16)},
+						minvel = {x=0, y=0, z=0},
+						maxvel = {x=0, y=0, z=0},
+						minacc = {x=0, y=0.1, z=0},
+						maxacc = {x=0, y=1, z=0},
 						minexptime = 1,
 						maxexptime = 2,
 						minsize = 1,
@@ -510,106 +553,106 @@ minetest.register_node("enchant:enchantbox", {
 						vertical = false,
 						texture = "bubble.png",
 					})
-					--make it so you cannot get the enchantment before it's done with the cinematic
-					local newpos = item:getpos()
-					local newpos2= clicker:getpos()
-					item:remove()
-					local item = minetest.add_item(newpos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
-					item:setvelocity({x=newpos2.x-newpos.x,y=(newpos2.y-newpos.y)+6,z=newpos2.z-newpos.z})
-					item:setacceleration({x = 0, y = -10, z = 0})
-				end)
+					minetest.after(13, function()
+						--don't do anything if the player cancelled the event
+						if item:get_luaentity() == nil then
+							return
+						end
+						minetest.sound_stop(sound)
+						minetest.sound_play("enchant", {
+							pos = pos,
+							max_hear_distance = 20,
+							gain = 1,
+						})
+						minetest.add_particlespawner({
+							amount = 100,
+							time = 0.1,
+							minpos = item:getpos(),
+							maxpos = item:getpos(),
+							minvel = {x=-1, y=-1, z=-1},
+							maxvel = {x=1, y=1, z=1},
+							minacc = {x=0, y=0, z=0},
+							maxacc = {x=0, y=0, z=0},
+							minexptime = 1,
+							maxexptime = 2,
+							minsize = 1,
+							maxsize = 1,
+							collisiondetection = false,
+							vertical = false,
+							texture = "bubble.png",
+						})
+						--make it so you cannot get the enchantment before it's done with the cinematic
+						local newpos = item:getpos()
+						local newpos2= clicker:getpos()
+						item:remove()
+						local item = minetest.add_item(newpos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+						item:setvelocity({x=newpos2.x-newpos.x,y=(newpos2.y-newpos.y)+6,z=newpos2.z-newpos.z})
+						item:setacceleration({x = 0, y = -10, z = 0})
+					end)
 
 
 
-				return(itemstack)
+					return(itemstack)
 
-			else
-				--do nothing
-			end
-		end
-		if intable(enchant.axe, name) ~= false and meta == "" then 
-			--set up a random amount of perks, with random perks, in a random order, random.
-			local enc_tab = {}
-			local counter = 1
-			for i = 1,math.random(1,tablelength(enchant.enchantments_axe)) do
-				local perk = enchant.enchantments_axe[math.random(1,tablelength(enchant.enchantments_axe))]
-				if intable(enc_tab, perk) == false then
-					enc_tab[counter] = perk
-					counter = counter + 1
+				else
+					--do nothing
 				end
 			end
-			local tool = itemstack:get_name()
-			local a, b, c, d = 0,0,0,0
-			if intable(enc_tab, enchant.enchantments_axe[1]) then --speed
-				a = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_axe[2]) then --durable
-				b = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_axe[3]) then --luck
-				c = 1 
-			end
-			if intable(enc_tab, enchant.enchantments_axe[4]) then --cherry pick
-				d = 1 
-			end
-			if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't put out a normal tool
-				local name = itemstack:get_name()
-				itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
-				local pos = pointed_thing.under
-				pos.y = pos.y + 0.7
-				--local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
-				local item = minetest.add_item(pos,name)
-				if item == nil then
-					print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
-					print("BUG!")
-					return
-				end 
-				local item = item:get_luaentity().object
-				item:setvelocity({x = 0, y = 0.1, z = 0})
-				item:setacceleration({x = 0, y = 0, z = 0})
-				item:set_properties({automatic_rotate = 0}) --or do 10
-				local sound = minetest.sound_play("build", {
-					pos = pos,
-					max_hear_distance = 20,
-					gain = 1,
-				})
-				minetest.add_particlespawner({
-					amount = 100,
-					time = 13,
-					minpos = {x=pos.x-0.5, y=pos.y-0.1, z=pos.z-0.5},
-					maxpos = {x=pos.x+0.5, y=pos.y-0.1, z=pos.z+0.5},
-					minvel = {x=0, y=0, z=0},
-					maxvel = {x=0, y=0, z=0},
-					minacc = {x=0, y=0.1, z=0},
-					maxacc = {x=0, y=1, z=0},
-					minexptime = 1,
-					maxexptime = 2,
-					minsize = 1,
-					maxsize = 1,
-					collisiondetection = false,
-					vertical = false,
-					texture = "bubble.png",
-				})
-				minetest.after(13, function()
-					--don't do anything if the player cancelled the event
-					if item:get_luaentity() == nil then
-						return
+			if intable(enchant.axe, name) ~= false and meta == "" then 
+				--set up a random amount of perks, with random perks, in a random order, random.
+				local enc_tab = {}
+				local counter = 1
+				for i = 1,math.random(1,tablelength(enchant.enchantments_axe)) do
+					local perk = enchant.enchantments_axe[math.random(1,tablelength(enchant.enchantments_axe))]
+					if intable(enc_tab, perk) == false then
+						enc_tab[counter] = perk
+						counter = counter + 1
 					end
-					minetest.sound_stop(sound)
-					minetest.sound_play("enchant", {
+				end
+				local tool = itemstack:get_name()
+				local a, b, c, d = 0,0,0,0
+				if intable(enc_tab, enchant.enchantments_axe[1]) then --speed
+					a = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_axe[2]) then --durable
+					b = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_axe[3]) then --luck
+					c = 1 
+				end
+				if intable(enc_tab, enchant.enchantments_axe[4]) then --cherry pick
+					d = 1 
+				end
+				if a.."_"..b.."_"..c.."_"..d ~= "0_0_0_0" then -- no enchantments, then don't put out a normal tool
+					local name = itemstack:get_name()
+					itemstack:take_item()--set_name(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+					local pos = pointed_thing.under
+					pos.y = pos.y + 0.7
+					--local item = minetest.add_item(pos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+					local item = minetest.add_item(pos,name)
+					if item == nil then
+						print(tool.."_"..a.."_"..b.."_"..c.."_"..d)
+						print("BUG!")
+						return
+					end 
+					local item = item:get_luaentity().object
+					item:setvelocity({x = 0, y = 0.1, z = 0})
+					item:setacceleration({x = 0, y = 0, z = 0})
+					item:set_properties({automatic_rotate = 0}) --or do 10
+					local sound = minetest.sound_play("build", {
 						pos = pos,
 						max_hear_distance = 20,
 						gain = 1,
 					})
 					minetest.add_particlespawner({
 						amount = 100,
-						time = 0.1,
-						minpos = item:getpos(),
-						maxpos = item:getpos(),
-						minvel = {x=-1, y=-1, z=-1},
-						maxvel = {x=1, y=1, z=1},
-						minacc = {x=0, y=0, z=0},
-						maxacc = {x=0, y=0, z=0},
+						time = 13,
+						minpos = {x=pos.x-(6/16), y=pos.y-0.1, z=pos.z-(6/16)},
+						maxpos = {x=pos.x+(6/16), y=pos.y-0.1, z=pos.z+(6/16)},
+						minvel = {x=0, y=0, z=0},
+						maxvel = {x=0, y=0, z=0},
+						minacc = {x=0, y=0.1, z=0},
+						maxacc = {x=0, y=1, z=0},
 						minexptime = 1,
 						maxexptime = 2,
 						minsize = 1,
@@ -618,34 +661,145 @@ minetest.register_node("enchant:enchantbox", {
 						vertical = false,
 						texture = "bubble.png",
 					})
-					--make it so you cannot get the enchantment before it's done with the cinematic
-					local newpos = item:getpos()
-					local newpos2= clicker:getpos()
-					item:remove()
-					local item = minetest.add_item(newpos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
-					item:setvelocity({x=newpos2.x-newpos.x,y=(newpos2.y-newpos.y)+6,z=newpos2.z-newpos.z})
-					item:setacceleration({x = 0, y = -10, z = 0})
-				end)
+					minetest.after(13, function()
+						--don't do anything if the player cancelled the event
+						if item:get_luaentity() == nil then
+							return
+						end
+						minetest.sound_stop(sound)
+						minetest.sound_play("enchant", {
+							pos = pos,
+							max_hear_distance = 20,
+							gain = 1,
+						})
+						minetest.add_particlespawner({
+							amount = 100,
+							time = 0.1,
+							minpos = item:getpos(),
+							maxpos = item:getpos(),
+							minvel = {x=-1, y=-1, z=-1},
+							maxvel = {x=1, y=1, z=1},
+							minacc = {x=0, y=0, z=0},
+							maxacc = {x=0, y=0, z=0},
+							minexptime = 1,
+							maxexptime = 2,
+							minsize = 1,
+							maxsize = 1,
+							collisiondetection = false,
+							vertical = false,
+							texture = "bubble.png",
+						})
+						--make it so you cannot get the enchantment before it's done with the cinematic
+						local newpos = item:getpos()
+						local newpos2= clicker:getpos()
+						item:remove()
+						local item = minetest.add_item(newpos, tool.."_"..a.."_"..b.."_"..c.."_"..d)
+						item:setvelocity({x=newpos2.x-newpos.x,y=(newpos2.y-newpos.y)+6,z=newpos2.z-newpos.z})
+						item:setacceleration({x = 0, y = -10, z = 0})
+					end)
 
 
 
-				return(itemstack)
+					return(itemstack)
 
-			else
-				--do nothing
+				else
+					--do nothing
+				end
 			end
+			-- then do the enchantments for other tools
+
+			--now let's make it do some enchanted actions!
+			--local meta_table = minetest.deserialize(itemstack:get_metadata()) 
+			--for i = 1,tablelength(meta_table) do --do all the enchantment actions -----    This should probably be some kind of function!    ------ 
+			--	if meta_table[i] == "speed" then
+			--		print("this item has speed")
+			--	end
+			--end
+
+			--return(itemstack)
+		elseif chance > 0.85 and chance < 0.998 then
+			--it ate the item! such bad luck
+			itemstack:take_item()
+			minetest.sound_play("chomp", {
+				pos = pos,
+				max_hear_distance = 20,
+				gain = 1,
+			})
+			minetest.add_particlespawner({
+				amount = 200,
+				time = 5,
+				minpos = {x=pos.x-(6/16), y=pos.y-0.1, z=pos.z-(6/16)},
+				maxpos = {x=pos.x+(6/16), y=pos.y-0.1, z=pos.z+(6/16)},
+				minvel = {x=0, y=0, z=0},
+				maxvel = {x=0, y=0, z=0},
+				minacc = {x=0, y=0.5, z=0},
+				maxacc = {x=0, y=3, z=0},
+				minexptime = 1,
+				maxexptime = 2,
+				minsize = 1,
+				maxsize = 1,
+				collisiondetection = false,
+				vertical = false,
+				texture = "heart.png",
+			})
+		elseif chance >= 0.999 then
+			--warning: this function is brutal
+			--you must have broken 200 mirrors and crashed with a salt truck, let's destroy your life
+			minetest.sound_play("bad_luck", {
+				pos = pos,
+				max_hear_distance = 55,
+				gain = 1,
+			})
+			minetest.add_particlespawner({
+				amount = 200,
+				time = 10,
+				minpos = {x=pos.x-(6/16), y=pos.y-0.1, z=pos.z-(6/16)},
+				maxpos = {x=pos.x+(6/16), y=pos.y-0.1, z=pos.z+(6/16)},
+				minvel = {x=0, y=0, z=0},
+				maxvel = {x=0, y=0, z=0},
+				minacc = {x=0, y=0.5, z=0},
+				maxacc = {x=0, y=3, z=0},
+				minexptime = 1,
+				maxexptime = 2,
+				minsize = 1,
+				maxsize = 1,
+				collisiondetection = false,
+				vertical = false,
+				texture = "bubble.png^[colorize:red:120",
+			})
+			minetest.after(10, function() --give them the illusion that they might live
+				local inv = clicker:get_inventory()
+				local size = inv:get_size("main")
+				for i = 1,size do 
+					local stack = inv:get_stack("main", i)
+					inv:set_stack("main", i, "")
+				end
+				--explosion stuff (use this for fireworks/tnt/nukes)
+				decimate_player_with_crucible(pos)
+				minetest.add_particlespawner({
+					amount = 200,
+					time = 0.1,
+					minpos = pos,
+					maxpos = pos,
+					minvel = {x=-5, y=-5, z=-5},
+					maxvel = {x=5, y=5, z=5},
+					minacc = {x=0, y=0, z=0},
+					maxacc = {x=0, y=0, z=0},
+					minexptime = 3,
+					maxexptime = 5,
+					minsize = 1,
+					maxsize = 1,
+					collisiondetection = false,
+					vertical = false,
+					texture = "bubble.png",
+				})
+				minetest.sound_play("boom", {
+					pos = pos,
+					max_hear_distance = 55,
+					gain = 1,
+				})			
+			end)
 		end
-		-- then do the enchantments for other tools
-
-		--now let's make it do some enchanted actions!
-		--local meta_table = minetest.deserialize(itemstack:get_metadata()) 
-		--for i = 1,tablelength(meta_table) do --do all the enchantment actions -----    This should probably be some kind of function!    ------ 
-		--	if meta_table[i] == "speed" then
-		--		print("this item has speed")
-		--	end
-		--end
-
-		--return(itemstack)
 	end,
 })
 
