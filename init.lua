@@ -303,7 +303,7 @@ end
 
 minetest.register_node("enchant:enchantbox", {
 	description = "Cactus",
-	tiles = {"default_cactus_top.png", "default_stone.png"},
+	tiles = {"ench_table_top.png", "ench_table_sides.png"},
 	paramtype2 = "facedir",
 	is_ground_content = true,
 	groups = {snappy=1,choppy=3,flammable=2},
@@ -373,7 +373,7 @@ minetest.register_node("enchant:enchantbox", {
 					maxsize = 1,
 					collisiondetection = false,
 					vertical = false,
-					texture = "bubble.png",
+					texture = "star.png",
 				})
 				minetest.after(13, function()
 					--don't do anything if the player cancelled the event
@@ -401,7 +401,7 @@ minetest.register_node("enchant:enchantbox", {
 						maxsize = 1,
 						collisiondetection = false,
 						vertical = false,
-						texture = "bubble.png",
+						texture = "star.png",
 					})
 					--make it so you cannot get the enchantment before it's done with the cinematic
 					local newpos = item:getpos()
@@ -480,7 +480,7 @@ minetest.register_node("enchant:enchantbox", {
 					maxsize = 1,
 					collisiondetection = false,
 					vertical = false,
-					texture = "bubble.png",
+					texture = "star.png",
 				})
 				minetest.after(13, function()
 					--don't do anything if the player cancelled the event
@@ -508,7 +508,7 @@ minetest.register_node("enchant:enchantbox", {
 						maxsize = 1,
 						collisiondetection = false,
 						vertical = false,
-						texture = "bubble.png",
+						texture = "star.png",
 					})
 					--make it so you cannot get the enchantment before it's done with the cinematic
 					local newpos = item:getpos()
@@ -588,7 +588,7 @@ minetest.register_node("enchant:enchantbox", {
 					maxsize = 1,
 					collisiondetection = false,
 					vertical = false,
-					texture = "bubble.png",
+					texture = "star.png",
 				})
 				minetest.after(13, function()
 					--don't do anything if the player cancelled the event
@@ -616,7 +616,7 @@ minetest.register_node("enchant:enchantbox", {
 						maxsize = 1,
 						collisiondetection = false,
 						vertical = false,
-						texture = "bubble.png",
+						texture = "star.png",
 					})
 					--make it so you cannot get the enchantment before it's done with the cinematic
 					local newpos = item:getpos()
