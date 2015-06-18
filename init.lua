@@ -813,7 +813,14 @@ minetest.register_node("enchant:crucible", {
 		end
 	end,
 })
-
+minetest.register_craft({
+	output = "enchant:crucible",
+	recipe = {
+		{"default:stone","default:stone","default:stone"},
+		{"default:stone","bucket:bucket_water","default:stone"},
+		{"default:wood","default:wood","default:wood"},
+	}
+})
 
 --do some enchantments
 
