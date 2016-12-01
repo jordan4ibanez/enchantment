@@ -14,11 +14,11 @@ player throws in item
 -bubble particles on idle along with a lot of bubble particles when active
 
 Enchantments:
-/ = hardcoded for now, until items are modifyable
-(metadata)
-/luck        = more items per mine
-/furnace     = instant cook items if possible
-/delicate    = get source node if drop is differant than source
+##/ = hardcoded for now, until items are modifyable
+##(metadata)
+##/luck        = more items per mine
+##/furnace     = instant cook items if possible
+##/delicate    = get source node if drop is differant than source
 
 (hard defined)
 ###quickmine   = mine faster
@@ -138,7 +138,7 @@ for _,item in pairs(tool_list_clone) do
 		--define the item - thanks to kaeza
 		minetest.register_tool("enchantment:"..item:match("^.-:(.*)").."_"..quickmine..furnace..luck..delicate, {
 			description = temp_description,
-			inventory_image = inventory_image,
+			inventory_image = inventory_image.."^[colorize:#551A8B:120",
 			wield_image = wield_image,
 			tool_capabilities = {
 				full_punch_interval = full_punch_interval,
@@ -269,3 +269,33 @@ end
 
 
 --generate items when enchanting by doing math.random(0,maxlevel)..math.random(0,maxlevel)......
+
+minetest.register_node("enchantment:crucible", {
+	description = "Crucible",
+
+	--Thanks to Gambit and kilbith for this
+	tiles = {enchant_top,"enchant_table_bottom.png","enchant_table_side.png","enchant_table_side.png","enchant_table_side.png","enchant_table_side.png",},
+	paramtype2 = "facedir",
+	is_ground_content = true,
+	groups = {snappy=1,choppy=3,flammable=2},
+	paramtype = "light",
+	drawtype = "nodebox",
+	selection_box = {type="regular"},
+	node_box = {
+			type = "fixed",
+			fixed = {
+			--jukebox core - divide by 16 because 16 pixels
+			{-8/16, -8/16, -8/16, 8/16, 7/16, 8/16},
+			--top
+			{-8/16, 6/16, -8/16, 8/16, 7/16, 8/16},
+			--top trim
+			{6/16, 7/16, -8/16, 8/16, 8/16, 8/16},
+			{-8/16, 7/16, 6/16, 8/16, 8/16, 8/16},
+			{-8/16, 7/16, -8/16, -6/16, 8/16, 8/16},
+			{-8/16, 7/16, -8/16, 8/16, 8/16, -6/16},
+			},
+		},
+	--on_place = minetest.rotate_node,
+	on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
+	end,
+})
