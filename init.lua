@@ -163,7 +163,7 @@ end
 if minetest.get_modpath("item_drop") then
 minetest.register_on_dignode(function(pos, oldnode, digger)
 		local item 
-		if string.match(digger:get_wielded_item():to_string(), "enchantment") then
+		if digger:get_wielded_item():to_string() ~= "" and string.match(digger:get_wielded_item():to_string(), "enchantment") and not string.match(digger:get_wielded_item():to_string(), "crucible")  then
 			item = digger:get_wielded_item():to_table().name
 		else
 			return -- don't do anything else if hand
@@ -306,10 +306,10 @@ minetest.register_node("enchantment:crucible", {
 		},
 	--on_place = minetest.rotate_node,
 	on_construct = function(pos)
-		set_particlespawner(pos)
+		enchantment.set_particlespawner(pos)
 	end,
 	on_destruct = function(pos)
-		remove_particlespawner(pos)
+		enchantment.remove_particlespawner(pos)
 	end,
 })
 
@@ -318,11 +318,12 @@ minetest.register_lbm({
 	nodenames = {"enchantment:crucible"},
 	run_at_every_load = true,
 	action = function(pos, node)
-		set_particlespawner(pos)
+		enchantment.set_particlespawner(pos)
 	end,
 })
+enchantment = {}
 
-set_particlespawner = function(pos)
+enchantment.set_particlespawner = function(pos)
 	local ps = minetest.add_particlespawner({
 		amount = 5,
 		time = 0,
@@ -344,7 +345,7 @@ set_particlespawner = function(pos)
 	meta:set_string("spawner", ps)
 end
 
-remove_particlespawner = function(pos)
+enchantment.remove_particlespawner = function(pos)
 	local meta = minetest.get_meta(pos)
 	local ps = meta:get_string("spawner")
 	
@@ -352,3 +353,106 @@ remove_particlespawner = function(pos)
 		minetest.delete_particlespawner(ps)
 	end
 end
+
+enchantment.check_for_items = function(pos)
+	--item drop code
+	for _,object in pairs(minetest.get_objects_inside_radius(pos, 1)) do
+		if not object:is_player() and object:get_luaentity() and object:get_luaentity().name == "__builtin:item" then
+			if string.match(object:get_luaentity().itemstring, "enchantment") or (not string.match(object:get_luaentity().itemstring, "axe") and not string.match(object:get_luaentity().itemstring, "pick") and not string.match(object:get_luaentity().itemstring, "shovel")) then
+				break
+			end
+			local pos2 = object:getpos()
+			local vec = {x=pos.x - pos2.x, y=pos.y - pos2.y, z=pos.z - pos2.z}
+			
+			--if item's in the goo do the little animation
+			if math.abs(vec.x) < 0.5 and math.abs(vec.z) < 0.5 and vec.y < 0.5 then
+				local itemer = object:get_luaentity().itemstring
+				object:remove()
+				local object2 = minetest.add_entity(pos2, "enchantment:item_ent")
+				object2:get_luaentity().nodename = itemer
+			end	
+		end
+	end
+end
+
+minetest.register_abm{
+	nodenames = {"enchantment:crucible"},
+	interval = 1,
+	chance = 1,
+	action = function(pos)
+		enchantment.check_for_items(pos)
+	end,
+}
+
+--item entity
+minetest.register_entity("enchantment:item_ent", {
+    hp_max = 1,
+    physical = false,
+    collisionbox = {0,0,0,0,0,0},
+    visual = "wielditem",
+    visual_size = {x = 0.25, y = 0.25},
+    textures={"air"},
+    makes_footstep_sound = false,
+    timer = 0,
+    old_nodename = nil,
+    
+    set_node = function(self,dtime)
+		self.texture = ItemStack(self.nodename):get_name()
+		self.old_nodename = self.nodename
+		self.object:set_properties({textures={self.texture}})
+    end,
+
+    on_activate = function(self,dtime)
+		self.set_node(self,dtime)
+		self.object:setvelocity({x=0,y=0.3,z=0})
+    end,
+
+    
+    on_step = function(self,dtime)
+		self.timer = self.timer + dtime
+		if self.old_nodename ~= self.nodename then
+			self.set_node(self,dtime)
+		end
+		if self.timer > 3 then 
+			local pos = self.object:getpos()
+			minetest.add_particlespawner({
+				amount = 50,
+				time = 0.1,
+				minpos = {x=pos.x, y=pos.y, z=pos.z},
+				maxpos = {x=pos.x, y=pos.y, z=pos.z},
+				minvel = {x=-5, y=-5, z=-5},
+				maxvel = {x=5, y=5, z=5},
+				minacc = {x=0, y=0, z=0},
+				maxacc = {x=0, y=0, z=0},
+				minexptime = 1,
+				maxexptime = 1,
+				minsize = 1,
+				maxsize = 1,
+				collisiondetection = false,
+				vertical = false,
+				texture = "bubble.png^[colorize:#551A8B:100",
+			})
+			enchantment.enchant(pos,self.nodename)
+			self.object:remove()
+			
+		end
+    end,
+})
+--enchanting
+enchantment.enchant = function(pos,item)
+	if item == nil then
+		return
+	end
+	local quickmine = math.random(0,enchant_level_max)
+	local furnace   = math.random(0,1)
+	local luck      = math.random(0,1)
+	local delicate  = math.random(0,1)
+	local test = minetest.add_item(pos,"enchantment:"..item:match("^.-:(.*)").."_"..quickmine..furnace..luck..delicate)
+	if test then
+		minetest.sound_play("enchant", {
+			gain = 2.0,
+			pos = pos,
+		})
+	end
+end
+
