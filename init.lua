@@ -370,6 +370,10 @@ enchantment.check_for_items = function(pos)
 				object:remove()
 				local object2 = minetest.add_entity(pos2, "enchantment:item_ent")
 				object2:get_luaentity().nodename = itemer
+				minetest.sound_play("drama", {
+					gain = 2.0,
+					pos = pos,
+				})
 			end	
 		end
 	end
@@ -447,12 +451,23 @@ enchantment.enchant = function(pos,item)
 	local furnace   = math.random(0,1)
 	local luck      = math.random(0,1)
 	local delicate  = math.random(0,1)
-	local test = minetest.add_item(pos,"enchantment:"..item:match("^.-:(.*)").."_"..quickmine..furnace..luck..delicate)
-	if test then
-		minetest.sound_play("enchant", {
-			gain = 2.0,
-			pos = pos,
-		})
+	if quickmine+furnace+luck+delicate == 0 then
+		local test = minetest.add_item(pos,item)
+		if test then
+			minetest.sound_play("fart", {
+				gain = 2.0,
+				pos = pos,
+			})
+		end
+	
+	else
+		local test = minetest.add_item(pos,"enchantment:"..item:match("^.-:(.*)").."_"..quickmine..furnace..luck..delicate)
+		if test then
+			minetest.sound_play("enchant", {
+				gain = 2.0,
+				pos = pos,
+			})
+		end
 	end
 end
 
