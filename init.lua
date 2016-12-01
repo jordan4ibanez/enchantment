@@ -27,22 +27,6 @@ hard hitter = do more damage to players/entities
 
 ]]--
 
---meta test
-minetest.register_craftitem("enchantment:test", {
-	description = "Testcraftitem",
-	inventory_image = "default_stone.png",
- 
-	on_use = function(itemstack, user, pointed_thing)
-		print(itemstack:to_table().metadata)
-		--if itemstack:get_metadata() == "" then
-		itemstack:set_metadata("test")
-		print("SETTING META")
-		--end
-
-		print(dump(itemstack:to_table()))
-	end,
-})
-
 --max level for enchants, things like quickmine use time/level to calc how much performance increase
 --the item has, don't get too crazy with it because it adds (enchant_level_max*item number) more items per item that 
 --get enchanted
