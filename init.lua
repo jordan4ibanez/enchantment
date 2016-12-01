@@ -370,10 +370,6 @@ enchantment.check_for_items = function(pos)
 				object:remove()
 				local object2 = minetest.add_entity(pos2, "enchantment:item_ent")
 				object2:get_luaentity().nodename = itemer
-				minetest.sound_play("drama", {
-					gain = 2.0,
-					pos = pos,
-				})
 			end	
 		end
 	end
