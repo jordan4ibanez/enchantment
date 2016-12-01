@@ -209,7 +209,8 @@ minetest.register_on_dignode(function(pos, oldnode, digger)
 else
 	minetest.register_on_dignode(function(pos, oldnode, digger)
 		local item 
-		if string.match(digger:get_wielded_item():to_string(), "enchantment") then
+		print(dump(digger:get_wielded_item():to_string()))
+		if digger:get_wielded_item():to_string() ~= "" and string.match(digger:get_wielded_item():to_string(), "enchantment") and not string.match(digger:get_wielded_item():to_string(), "crucible")  then
 			item = digger:get_wielded_item():to_table().name
 		else
 			return -- don't do anything else if hand
@@ -304,6 +305,50 @@ minetest.register_node("enchantment:crucible", {
 			},
 		},
 	--on_place = minetest.rotate_node,
-	on_rightclick = function(pos, node, clicker, itemstack, pointed_thing)
+	on_construct = function(pos)
+		set_particlespawner(pos)
+	end,
+	on_destruct = function(pos)
+		remove_particlespawner(pos)
 	end,
 })
+
+minetest.register_lbm({
+	name = "enchantment:add_bubbles",
+	nodenames = {"enchantment:crucible"},
+	run_at_every_load = true,
+	action = function(pos, node)
+		set_particlespawner(pos)
+	end,
+})
+
+set_particlespawner = function(pos)
+	local ps = minetest.add_particlespawner({
+		amount = 5,
+		time = 0,
+		minpos = {x=pos.x-0.35, y=pos.y+0.5, z=pos.z-0.35},
+		maxpos = {x=pos.x+0.35, y=pos.y+0.5, z=pos.z+0.35},
+		minvel = {x=0, y=0, z=0},
+		maxvel = {x=0, y=0, z=0},
+		minacc = {x=0, y=0.5, z=0},
+		maxacc = {x=0, y=1.5, z=0},
+		minexptime = 1,
+		maxexptime = 1,
+		minsize = 1,
+		maxsize = 1,
+		collisiondetection = false,
+		vertical = false,
+		texture = "bubble.png^[colorize:#551A8B:100",
+	})
+	local meta = minetest.get_meta(pos)
+	meta:set_string("spawner", ps)
+end
+
+remove_particlespawner = function(pos)
+	local meta = minetest.get_meta(pos)
+	local ps = meta:get_string("spawner")
+	
+	if ps then
+		minetest.delete_particlespawner(ps)
+	end
+end
