@@ -269,7 +269,15 @@ end
 
 
 --generate items when enchanting by doing math.random(0,maxlevel)..math.random(0,maxlevel)......
-
+local enchant_top = {
+	name = "default_water_source_animated.png^[colorize:red:120^enchant_table_top.png",
+	animation = {
+		type = "vertical_frames",
+		aspect_w = 16,
+		aspect_h = 16,
+		length = 2.0,
+	},
+}
 minetest.register_node("enchantment:crucible", {
 	description = "Crucible",
 
