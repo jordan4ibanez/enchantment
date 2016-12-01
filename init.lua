@@ -144,111 +144,114 @@ for _,item in pairs(tool_list_clone) do
 end
 
 --luck,furnace,delicate enchantment - make compatible with default and item drop
-if minetest.get_modpath("item_drop") then
-minetest.register_on_dignode(function(pos, oldnode, digger)
-		local item 
-		if digger:get_wielded_item():to_string() ~= "" and string.match(digger:get_wielded_item():to_string(), "enchantment") and not string.match(digger:get_wielded_item():to_string(), "crucible")  then
-			item = digger:get_wielded_item():to_table().name
-		else
-			return -- don't do anything else if hand
-		end
-		
-		local name = minetest.registered_tools[item].description
-		local drop_count = 1
-		local drop
-		
-		local luck = false
-		local cook = false
-		local delicate = false
-		
-		--luck enchantment
-		if string.match(name, "Luck") then
-			luck = true
-			drop_count = math.random(1,4)
-		end
-				
-		--Delicate enchantment
-		if string.match(name, "Delicate") then
-			drop = oldnode.name
-			delicate = true
-		else
-			drop = minetest.get_node_drops(oldnode.name, name)[1]
-		end
-		
-		--furnace enchantment
-		if string.match(name, "Furnace") then
-			local temper, _ = minetest.get_craft_result({ method = "cooking", width = 1, items = {drop}})
-			--if the item can be smelted, smelt
-			if temper and temper.item:to_table() then
-				temper = temper.item:to_table().name
-				
-				drop = temper
-				cook = true
-			end
-		end
-		
-		--add item
-		minetest.add_item(pos, drop.." "..drop_count)
-	end)
-else
+--This only works in survival
+if minetest.setting_getbool("creative_mode") == false then
+	if minetest.get_modpath("item_drop") then
 	minetest.register_on_dignode(function(pos, oldnode, digger)
-		local item 
-		print(dump(digger:get_wielded_item():to_string()))
-		if digger:get_wielded_item():to_string() ~= "" and string.match(digger:get_wielded_item():to_string(), "enchantment") and not string.match(digger:get_wielded_item():to_string(), "crucible")  then
-			item = digger:get_wielded_item():to_table().name
-		else
-			return -- don't do anything else if hand
-		end
-		local name = minetest.registered_tools[item].description
-		local drop_count = 1
-		local drop
-		
-		local luck = false
-		local cook = false
-		local delicate = false
-		
-		
-		--luck enchantment
-		if string.match(name, "Luck") then
-			luck = true
-			drop_count = math.random(1,4)
-		end
-				
-		--Delicate enchantment
-		if string.match(name, "Delicate") then
-			drop = oldnode.name
-			delicate = true
-		else
-			drop = minetest.get_node_drops(oldnode.name, name)[1]
-		end
-		
-		--furnace enchantment
-		if string.match(name, "Furnace") then
-			local temper, _ = minetest.get_craft_result({ method = "cooking", width = 1, items = {drop}})
-			--if the item can be smelted, smelt
-			if temper and temper.item:to_table() then
-				temper = temper.item:to_table().name
-				
-				drop = temper
-				cook = true
+			local item 
+			if digger:get_wielded_item():to_string() ~= "" and string.match(digger:get_wielded_item():to_string(), "enchantment") and not string.match(digger:get_wielded_item():to_string(), "crucible")  then
+				item = digger:get_wielded_item():to_table().name
+			else
+				return -- don't do anything else if hand
 			end
-		end
-		
-		--process it all
-		local inv = digger:get_inventory()
-		if inv and inv:room_for_item("main", drop.." "..drop_count) then
-			inv:add_item("main", drop.." "..drop_count)
 			
-			--stop players from duplicating items - basic item add override
-			if cook == true or delicate == true then
-				if drop ~= minetest.get_node_drops(oldnode.name, name)[1] then
-					inv:remove_item("main", minetest.get_node_drops(oldnode.name, name)[1])
+			local name = minetest.registered_tools[item].description
+			local drop_count = 1
+			local drop
+			
+			local luck = false
+			local cook = false
+			local delicate = false
+			
+			--luck enchantment
+			if string.match(name, "Luck") then
+				luck = true
+				drop_count = math.random(1,4)
+			end
+					
+			--Delicate enchantment
+			if string.match(name, "Delicate") then
+				drop = oldnode.name
+				delicate = true
+			else
+				drop = minetest.get_node_drops(oldnode.name, name)[1]
+			end
+			
+			--furnace enchantment
+			if string.match(name, "Furnace") then
+				local temper, _ = minetest.get_craft_result({ method = "cooking", width = 1, items = {drop}})
+				--if the item can be smelted, smelt
+				if temper and temper.item:to_table() then
+					temper = temper.item:to_table().name
+					
+					drop = temper
+					cook = true
 				end
 			end
-		else--no room, drop
+			
+			--add item
 			minetest.add_item(pos, drop.." "..drop_count)
-		end
-	end)
+		end)
+	else
+		minetest.register_on_dignode(function(pos, oldnode, digger)
+			local item 
+			print(dump(digger:get_wielded_item():to_string()))
+			if digger:get_wielded_item():to_string() ~= "" and string.match(digger:get_wielded_item():to_string(), "enchantment") and not string.match(digger:get_wielded_item():to_string(), "crucible")  then
+				item = digger:get_wielded_item():to_table().name
+			else
+				return -- don't do anything else if hand
+			end
+			local name = minetest.registered_tools[item].description
+			local drop_count = 1
+			local drop
+			
+			local luck = false
+			local cook = false
+			local delicate = false
+			
+			
+			--luck enchantment
+			if string.match(name, "Luck") then
+				luck = true
+				drop_count = math.random(1,4)
+			end
+					
+			--Delicate enchantment
+			if string.match(name, "Delicate") then
+				drop = oldnode.name
+				delicate = true
+			else
+				drop = minetest.get_node_drops(oldnode.name, name)[1]
+			end
+			
+			--furnace enchantment
+			if string.match(name, "Furnace") then
+				local temper, _ = minetest.get_craft_result({ method = "cooking", width = 1, items = {drop}})
+				--if the item can be smelted, smelt
+				if temper and temper.item:to_table() then
+					temper = temper.item:to_table().name
+					
+					drop = temper
+					cook = true
+				end
+			end
+			
+			--process it all
+			local inv = digger:get_inventory()
+			if inv and inv:room_for_item("main", drop.." "..drop_count) then
+				inv:add_item("main", drop.." "..drop_count)
+				
+				--stop players from duplicating items - basic item add override
+				if cook == true or delicate == true then
+					if drop ~= minetest.get_node_drops(oldnode.name, name)[1] then
+						inv:remove_item("main", minetest.get_node_drops(oldnode.name, name)[1])
+					end
+				end
+			else--no room, drop
+				minetest.add_item(pos, drop.." "..drop_count)
+			end
+		end)
+	end
 end
 
 
